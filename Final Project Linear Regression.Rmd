@@ -1,0 +1,318 @@
+---
+title: "bryn"
+author: "Dallin"
+date: "`r Sys.Date()`"
+output:
+  word_document: default
+  html_document: default
+---
+#Install necessary packages in order to analyze data.
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+install.packages("dplyr")
+library(dplyr)
+library(stringr)
+library(readr)
+library(ggplot2)
+```
+#Import data and filter data
+```{r, s}
+#Data from 2000 to 2017
+library(readr)
+options(readr.show_col_types = FALSE)
+death.total.table <- read_csv("~/Downloads/NCHS_-_Leading_Causes_of_Death__United_States (3).csv")
+death.total <- data.frame(death.total.table)
+#View(death.total)
+#Filter data by causes of death pertaining to study
+filtered.death.total <- death.total %>% 
+  group_by(Year) %>% 
+  filter(State=="United States", Year > 1999, Cause.Name != "All causes", Cause.Name != "Unintentional injuries", Cause.Name != "Suicide") %>% 
+  subset(select = c(-Age.adjusted.Death.Rate,-X113.Cause.Name))
+#View(filtered.death.total)
+#add rows for the upcoming years
+death.total.table.2 <- read_csv("~/Downloads/Final Project LR data 2018-2020 - Sheet1.csv")
+death.total.2 <- data.frame(death.total.table.2)
+#View(death.total.2)
+combined.death.total <- data.frame(rbind(filtered.death.total, death.total.2))
+#View(combined.death.total)
+#mutate the population so that it is per 100,000 people
+#population per year for rate question
+population.year <- c(rep(325122128, times = 8), rep(323071755, times = 8), rep(320738994, times = 8), rep(318386329, times = 8), rep(316059947, times = 8), rep(313877662, times = 8), rep(311583481, times = 8), rep(309327143, times = 8), rep(306771529, times = 8), rep(304093966, times = 8), rep(301231207, times = 8), rep(298379912, times = 8), rep(295516599, times = 8), rep(292805298, times = 8), rep(290107933, times = 8), rep(287625193, times = 8), rep(284968955, times = 8), rep(282162411, times = 8), rep(326838199, times = 8), rep(328329953, times = 8), rep(331501080, times = 8))
+combined.death.total %>% 
+  group_by(Year)
+combined.death.total$population <- population.year
+ordered.combined.death.total <- combined.death.total[order(combined.death.total$Year),]
+#View(ordered.combined.death.total)
+final.data <- ordered.combined.death.total %>% 
+  group_by(Year) %>% 
+  subset(select = -State) %>% 
+  mutate(rate = (Deaths/population)*100000)
+rep_string = c("Alzheimer's Disease"="Alzheimer's disease", "Heart Disease"="Heart disease", "Kidney Disease"="Kidney disease")
+final.data$Cause.Name <- str_replace_all(final.data$Cause.Name, rep_string)
+#Import Data on Health Expenditures
+health.expenditures <- data.frame(read_csv("~/Downloads/costs - Sheet1.csv"))
+#View(health.expenditures)
+health_expenses <- c(rep(1365.7, times = 8), rep(1483.1, times = 8), rep(1630.6, times = 8), rep(1769.9, times = 8), rep(1894.1, times = 8), rep(2025.9, times = 8), rep(2164.4, times = 8), rep(2305, times = 8), rep(2402, times = 8), rep(2492.5, times = 8), rep(2589.4, times = 8), rep(2676.2, times = 8), rep(2782.8, times = 8), rep(2855.8, times = 8), rep(3001.4, times = 8), rep(3163.6, times = 8), rep(3305.6, times = 8), rep(3446.5, times = 8), rep(3604.5, times = 8), rep(3759.1, times = 8), rep(4124, times = 8))
+#final.data is the data, all prepared for work
+final.data$health <- health_expenses
+View(final.data)
+print(final.data)
+```
+#Main Plot for this Statistical Analysis
+```{r}
+#Plot of the eight causes of death. 
+#X-axis is from the years 2000 to 2020, which is one of the independent variables. 
+#Y-axis is measuring the mortality rate of each different disease. These are the multiple independent variables that I am analyzing.
+ggplot(final.data, aes(Year, rate, color = Cause.Name)) +
+  ggtitle("Year vs Mortality Rate for Leading Causes of Death") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  geom_line() +
+  scale_color_discrete("Cause of Death") +
+  xlab("Year") +
+  ylab("Mortality Rate per 100k") 
+ggplot(final.data, aes(health, rate, color = Cause.Name)) +
+  ggtitle("Health Expenditure vs Mortality Rate for Leading Causes of Death") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  geom_line() +
+  scale_color_discrete("Cause of Death") +
+  xlab("Health Expenditure in Billions") +
+  ylab("Mortality Rate per 100k") 
+```
+#Different Important Numbers for analysis: 
+```{r}
+#Pearson's correlation coefficient: I'm looking for which diseases demonstrate a positive or negative correlation as time with the time in years.
+#heart disease
+heart_disease <- filter(final.data, Cause.Name == "Heart disease")
+#View(heart_disease)
+print("Pearson coefficient: Year vs Mortality Rate of Heart Disease")
+cor(heart_disease$Year, heart_disease$rate)
+
+cancer_disease <- filter(final.data, Cause.Name == "Cancer")
+print("Pearson coefficient: Year vs Mortality Rate of Cancer")
+cor(cancer_disease$Year, cancer_disease$rate)
+
+stroke_disease <- filter(final.data, Cause.Name == "Stroke")
+print("Pearson coefficient: Year vs Mortality Rate of Stroke")
+cor(stroke_disease$Year, stroke_disease$rate)
+
+clrd_disease <- filter(final.data, Cause.Name == "CLRD")
+print("Pearson coefficient: Year vs Mortality Rate of CLRD")
+cor(clrd_disease$Year, clrd_disease$rate)
+
+diabetes_disease <- filter(final.data, Cause.Name == "Diabetes")
+print("Pearson coefficient: Year vs Diabetes")
+cor(diabetes_disease$Year, diabetes_disease$rate)
+
+alzheimers_disease <- filter(final.data, Cause.Name == "Alzheimer's disease")
+print("Pearson coefficient: Year vs Mortality Rate of Alzheimer's Disease")
+cor(alzheimers_disease$Year, alzheimers_disease$rate)
+
+kidney_disease <- filter(final.data, Cause.Name == "Kidney disease")
+print("Pearson coefficient: Year vs Mortality Rate of Kidney Disease")
+cor(kidney_disease$Year, kidney_disease$rate)
+
+flu.pneu_disease <- filter(final.data, Cause.Name == "Influenza and pneumonia")
+print("Pearson coefficient: Year vs Mortality Rate of Flu and Pneumonia")
+cor(flu.pneu_disease$Year, flu.pneu_disease$rate)
+
+#Pearson's correlation coefficient: I'm looking for which diseases demonstrate a positive or negative correlation with health expenditures
+#heart disease
+heart_disease <- filter(final.data, Cause.Name == "Heart disease")
+#View(heart_disease)
+print("Pearson coefficient: Health Expenditures vs Mortality Rate of Heart Disease")
+cor(heart_disease$health, heart_disease$rate)
+
+cancer_disease <- filter(final.data, Cause.Name == "Cancer")
+print("Pearson coefficient: Health Expenditures vs Mortality Rate of Cancer")
+cor(cancer_disease$health, cancer_disease$rate)
+
+stroke_disease <- filter(final.data, Cause.Name == "Stroke")
+print("Pearson coefficient: Health Expenditures vs Mortality Rate of Stroke")
+cor(stroke_disease$health, stroke_disease$rate)
+
+clrd_disease <- filter(final.data, Cause.Name == "CLRD")
+print("Pearson coefficient: Health Expenditures vs Mortality Rate of CLRD")
+cor(clrd_disease$health, clrd_disease$rate)
+
+diabetes_disease <- filter(final.data, Cause.Name == "Diabetes")
+print("Pearson coefficient: Health Expenditures vs Diabetes")
+cor(diabetes_disease$health, diabetes_disease$rate)
+
+alzheimers_disease <- filter(final.data, Cause.Name == "Alzheimer's disease")
+print("Pearson coefficient: Health Expenditures vs Mortality Rate of Alzheimer's Disease")
+cor(alzheimers_disease$health, alzheimers_disease$rate)
+
+kidney_disease <- filter(final.data, Cause.Name == "Kidney disease")
+print("Pearson coefficient: Health Expenditures vs Mortality Rate of Kidney Disease")
+cor(kidney_disease$health, kidney_disease$rate)
+
+flu.pneu_disease <- filter(final.data, Cause.Name == "Influenza and pneumonia")
+print("Pearson coefficient: Health Expenditures vs Mortality Rate of Flu and Pneumonia")
+cor(flu.pneu_disease$health, flu.pneu_disease$rate)
+
+```
+#Individual Causes of Death plotted against time in years. Each graph shows a straight line which represents the linear trend of the data and a shadowed area which represents the confidence interval of 95%
+```{r}
+#heart disease
+ggplot(final.data[which(final.data$Cause.Name=="Heart disease"),], aes(Year, rate)) +
+  ggtitle("Year vs Mortality Rate due to Heart Disease") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  geom_line() +
+  geom_point() +
+  scale_color_discrete("Cause of Death") +
+  xlab("Year") +
+  ylab("Mortality Rate per 100k") +
+  geom_smooth(method = lm, level = 0.95, color="green", fill="lightgreen") 
+#Cancer
+ggplot(final.data[which(final.data$Cause.Name=="Cancer"),], aes(Year, rate)) +
+  ggtitle("Year vs Mortality Rate due to Cancer") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  geom_line() +
+  geom_point() +
+  scale_color_discrete("Cause of Death") +
+  xlab("Year") +
+  ylab("Mortality Rate per 100k") +
+  geom_smooth(method = lm, level = 0.95, color="green", fill="lightgreen") 
+#Stroke
+ggplot(final.data[which(final.data$Cause.Name=="Stroke"),], aes(Year, rate)) +
+  ggtitle("Year vs Mortality Rate due to Stroke") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  geom_line() +
+  geom_point() +
+  scale_color_discrete("Cause of Death") +
+  xlab("Year") +
+  ylab("Mortality Rate per 100k") +
+  geom_smooth(method = lm, level = 0.95, color="green", fill="lightgreen") 
+#CLRD
+ggplot(final.data[which(final.data$Cause.Name=="CLRD"),], aes(Year, rate)) +
+  ggtitle("Year vs Mortality Rate due to CLRD") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  geom_line() +
+  geom_point() +
+  scale_color_discrete("Cause of Death") +
+  xlab("Year") +
+  ylab("Mortality Rate per 100k") +
+  geom_smooth(method = lm, level = 0.95, color="red", fill="red")
+#Diabetes
+ggplot(final.data[which(final.data$Cause.Name=="Diabetes"),], aes(Year, rate)) +
+  ggtitle("Year vs Mortality Rate due to Diabetes") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  geom_line() +
+  geom_point() +
+  scale_color_discrete("Cause of Death") +
+  xlab("Year") +
+  ylab("Mortality Rate per 100k") +
+  geom_smooth(method = lm, level = 0.95, color="red", fill="red")
+#Alzheimer's
+ggplot(final.data[which(final.data$Cause.Name=="Alzheimer's disease"),], aes(Year, rate)) +
+  ggtitle("Year vs Mortality Rate due to Alzheimer's Disease") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  geom_line() +
+  geom_point() +
+  scale_color_discrete("Cause of Death") +
+  xlab("Year") +
+  ylab("Mortality Rate per 100k") +
+  geom_smooth(method = lm, level = 0.95, color="red", fill="red")
+#Kidney Disease
+ggplot(final.data[which(final.data$Cause.Name=="Kidney disease"),], aes(Year, rate)) +
+  ggtitle("Year vs Mortality Rate due to Kidney Disease") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  geom_line() +
+  geom_point() +
+  scale_color_discrete("Cause of Death") +
+  xlab("Year") +
+  ylab("Mortality Rate per 100k") +
+  geom_smooth(method = lm, level = 0.95, color="red", fill="red")
+#Flu/pneumonia
+ggplot(final.data[which(final.data$Cause.Name=="Influenza and pneumonia"),], aes(Year, rate)) +
+  ggtitle("Year vs Mortality Rate due to Influenza and Pneumonia") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  geom_line() +
+  geom_point() +
+  scale_color_discrete("Cause of Death") +
+  xlab("Year") +
+  ylab("Mortality Rate per 100k") +
+  geom_smooth(method = lm, level = 0.95, color="green", fill="lightgreen") 
+
+#Health Expenditures
+#heart disease
+ggplot(final.data[which(final.data$Cause.Name=="Heart disease"),], aes(health, rate)) +
+  ggtitle("Health Expenditure vs Mortality Rate due to Heart Disease") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  geom_line() +
+  geom_point() +
+  scale_color_discrete("Cause of Death") +
+  xlab("Health Expenditure in Billions") +
+  ylab("Mortality Rate per 100k") +
+  geom_smooth(method = lm, level = 0.95, color="green", fill="lightgreen") 
+#Cancer
+ggplot(final.data[which(final.data$Cause.Name=="Cancer"),], aes(health, rate)) +
+  ggtitle("Health Expenditure vs Mortality Rate due to Cancer") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  geom_line() +
+  geom_point() +
+  scale_color_discrete("Cause of Death") +
+  xlab("Health Expenditure in Billions") +
+  ylab("Mortality Rate per 100k") +
+  geom_smooth(method = lm, level = 0.95, color="green", fill="lightgreen") 
+#Stroke
+ggplot(final.data[which(final.data$Cause.Name=="Stroke"),], aes(health, rate)) +
+  ggtitle("Health Expenditure vs Mortality Rate due to Stroke") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  geom_line() +
+  geom_point() +
+  scale_color_discrete("Cause of Death") +
+  xlab("Health Expenditure in Billions") +
+  ylab("Mortality Rate per 100k") +
+  geom_smooth(method = lm, level = 0.95, color="green", fill="lightgreen") 
+#CLRD
+ggplot(final.data[which(final.data$Cause.Name=="CLRD"),], aes(health, rate)) +
+  ggtitle("Health Expenditure vs Mortality Rate due to CLRD") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  geom_line() +
+  geom_point() +
+  scale_color_discrete("Cause of Death") +
+  xlab("Health Expenditure in Billions") +
+  ylab("Mortality Rate per 100k") +
+  geom_smooth(method = lm, level = 0.95, color="red", fill="red")
+#Diabetes
+ggplot(final.data[which(final.data$Cause.Name=="Diabetes"),], aes(health, rate)) +
+  ggtitle("Health Expenditure vs Mortality Rate due to Diabetes") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  geom_line() +
+  geom_point() +
+  scale_color_discrete("Cause of Death") +
+  xlab("Health Expenditure in Billions") +
+  ylab("Mortality Rate per 100k") +
+  geom_smooth(method = lm, level = 0.95, color="red", fill="red")
+#Alzheimer's
+ggplot(final.data[which(final.data$Cause.Name=="Alzheimer's disease"),], aes(health, rate)) +
+  ggtitle("Health Expenditure vs Mortality Rate due to Alzheimer's Disease") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  geom_line() +
+  geom_point() +
+  scale_color_discrete("Cause of Death") +
+  xlab("Health Expenditure in Billions") +
+  ylab("Mortality Rate per 100k") +
+  geom_smooth(method = lm, level = 0.95, color="red", fill="red")
+#Kidney Disease
+ggplot(final.data[which(final.data$Cause.Name=="Kidney disease"),], aes(health, rate)) +
+  ggtitle("Health Expenditure vs Mortality Rate due to Kidney Disease") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  geom_line() +
+  geom_point() +
+  scale_color_discrete("Cause of Death") +
+  xlab("Health Expenditure in Billions") +
+  ylab("Mortality Rate per 100k") +
+  geom_smooth(method = lm, level = 0.95, color="red", fill="red")
+#Flu/pneumonia
+ggplot(final.data[which(final.data$Cause.Name=="Influenza and pneumonia"),], aes(health, rate)) +
+  ggtitle("Health Expenditure vs Mortality Rate due to Influenza and Pneumonia") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  geom_line() +
+  geom_point() +
+  scale_color_discrete("Cause of Death") +
+  xlab("Health Expenditure in Billions") +
+  ylab("Mortality Rate per 100k") +
+  geom_smooth(method = lm, level = 0.95, color="green", fill="lightgreen") 
+```
