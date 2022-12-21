@@ -1,5 +1,5 @@
 ---
-title: "bryn"
+title: "Causes of Death In the US"
 author: "Dallin"
 date: "`r Sys.Date()`"
 output:
